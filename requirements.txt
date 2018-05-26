@@ -1,0 +1,10 @@
+requests
+elasticsearch
+ipaddress
+python-dateutil
+numpy
+scipy
+scikit-learn
+matplotlib
+hurry.filesize
+pandas

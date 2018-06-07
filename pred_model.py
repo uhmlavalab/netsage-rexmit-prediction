@@ -135,55 +135,61 @@ def main():
 			print('This is the file name with the data \n')
 			print(data.split(' ')[0])
 			print('I will now check if the file exists\n')
-			try:
-				os.path.isfile(data.split()[0])
-				print('The file exists\n')
+			#try:
+			os.path.isfile(data.split()[0])
+			print('The file exists\n')
 
-				if data.split()[1] == 'retrain':
-					print('You have chosen to retrain the packet loss prediction module\n')
-		
-					if(os.path.isfile('ips.p')):
-						print('file is here\n')
-						print(data.split()[0]+'_ips.pkl')
-					else:
-						print('The ips are not converted to numerical values I will have to convert them\n')
-						convert_ips(data.split()[0])
+			if data.split()[1] == 'retrain':
+				print('You have chosen to retrain the packet loss prediction module\n')
+	
+				if(os.path.isfile('ips.p')):
+					print('file is here\n')
+					print(data.split()[0]+'_ips.pkl')
+				else:
+					print('The ips are not converted to numerical values I will have to convert them\n')
+					convert_ips(data.split()[0])
 
-					df = pd.read_pickle('ips.p')	
-					df = df.rolling(100, win_type ='triang').mean()
-					df = df.dropna(how='any')	
+				df = pd.read_pickle('ips.p')	
+				df = df.rolling(100, win_type ='triang').mean()
+				df = df.dropna(how='any')	
 
-					retrans = train(df, 10, ['percent_retrans'], ['tcp_rtt_avg', 'file_size_MB', 'throughput_Mbps', 'duration', 'converted_sips','converted_dips','tcp_initial_cwin'])
-					print(retrans)
-					
+				retrans = train(df, 10, ['percent_retrans'], ['tcp_rtt_avg', 'file_size_MB', 'throughput_Mbps', 'duration', 'converted_sips','converted_dips','tcp_initial_cwin'])
+				print(retrans)
+				
 
 
-				elif(data.split()[1] == 'test'):
-					print('You have selected testing on new data with an existing model\n')
-					try:
-						os.path.isfile('trained_model.pkl')
-						model = pickle.load(open('trained_model.pkl', 'rb'))
-						if (os.path.isfile('ips_test.p')):
-							print('The testing file with the converted IPs is here\n')
-						else:
-							convert_ips(data.split()[0])	
-						df_test = pd.read_pickle('ips_test.p')	
-						df_test = df_test.rolling(100, win_type ='triang').mean()
-						df_test = df_test.dropna(how='any')	
+			elif(data.split()[1] == 'test'):
+				print('You have selected testing on new data with an existing model\n')
+				#try:
+				os.path.isfile('trained_model.pkl')
+				model = pickle.load(open('trained_model.pkl', 'rb'))
+				if (os.path.isfile('ips_test.p')):
+					print('The testing file with the converted IPs is here\n')
+				else:
+					convert_ips(data.split()[0])	
+				df_test = pd.read_pickle('ips_test.p')	
+				df_test = df_test.rolling(100, win_type ='triang').mean()
+				df_test = df_test.dropna(how='any')	
 
-						retrans = test(model, df_test,['percent_retrans'], ['tcp_rtt_avg', 'file_size_MB', 'throughput_Mbps', 'duration', 'converted_sips','converted_dips','tcp_initial_cwin'] )	
-						print(np.array(retrans).size)
-					
-						np.savetxt('res.out',np.array(retrans), delimiter = ',')
+				retrans = test(model, df_test,['percent_retrans'], ['tcp_rtt_avg', 'file_size_MB', 'throughput_Mbps', 'duration', 'converted_sips','converted_dips','tcp_initial_cwin'] )	
 
-					except:
-						print('The model is not here, do you want to retrain?\n')
+				print(np.array(retrans).size)
+
+				
+				new_df = pd.concat([pd.to_datetime(df_test['@timestamp'],infer_datetime_format=True),df_test['percent_retrans']],axis=1, keys = ['timestamp', 'original_retrans'] )
+				print(new_df)
+				new_df['predicted_retrans'] = retrans
+				new_df.to_csv('res.csv',index=None, sep=' ', mode='a')
+				#np.savetxt('res.out',np.array(retrans), delimiter = ',')
+
+				#except:
+				#	print('The model is not here, do you want to retrain?\n')
 			connection.sendall('ok')
 
 
 
-			except:
-				print('The file is not here you need to call elastic\n')
+			# except:
+			# 	print('The file is not here you need to call elastic\n')
 
 
 

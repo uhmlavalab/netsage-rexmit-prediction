@@ -170,16 +170,24 @@ def main():
 				df_test = pd.read_pickle('ips_test.p')	
 				df_test = df_test.rolling(100, win_type ='triang').mean()
 				df_test = df_test.dropna(how='any')	
+				df_dtn01 = df_test[df_test.dst_ip=='dtn02.nersc.gov']
+				str_dtn = ['dtn','nersc.gov']
 
-				retrans = test(model, df_test,['percent_retrans'], ['tcp_rtt_avg', 'file_size_MB', 'throughput_Mbps', 'duration', 'converted_sips','converted_dips','tcp_initial_cwin'] )	
+				for i in df_test.dst_ip.unique():
+					if all(x in i for x in str_dtn):
+						print(i)
+						df_dtn01 = df_test[df_test.dst_ip==i]
 
-				print(np.array(retrans).size)
+						df_dtn01.reset_index(drop=True)
+						retrans = test(model, df_dtn01,['percent_retrans'], ['tcp_rtt_avg', 'file_size_MB', 'throughput_Mbps', 'duration', 'converted_sips','converted_dips','tcp_initial_cwin'] )	
+
+						print(np.array(retrans).size)
 
 				
-				new_df = pd.concat([pd.to_datetime(df_test['@timestamp'],infer_datetime_format=True),df_test['percent_retrans']],axis=1, keys = ['timestamp', 'original_retrans'] )
-				print(new_df)
-				new_df['predicted_retrans'] = retrans
-				new_df.to_csv('res.csv',index=None, sep=' ', mode='a')
+						new_df = pd.concat([pd.to_datetime(df_dtn01['@timestamp'],infer_datetime_format=True),df_dtn01['percent_retrans'], df_dtn01['src_ip']],axis=1, keys = ['timestamp', 'original_retrans','src_ip'] )
+						new_df['predicted_retrans'] = retrans
+						print(new_df)
+						new_df.to_csv('res_'+str(i)+'.csv',index=None, sep=' ', mode='a')
 				#np.savetxt('res.out',np.array(retrans), delimiter = ',')
 
 				#except:
